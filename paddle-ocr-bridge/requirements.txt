@@ -1,0 +1,7 @@
+# paddlepaddle 请单独安装（官方 CPU 源），见 README / scripts/install.ps1
+# Windows CPU 建议：paddlepaddle==3.2.2，避免 3.3.x oneDNN 报错
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pillow>=10.0.0
+numpy>=1.24.0
+paddleocr==3.3.3

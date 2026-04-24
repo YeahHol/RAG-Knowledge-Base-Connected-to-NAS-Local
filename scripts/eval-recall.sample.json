@@ -1,0 +1,15 @@
+{
+  "k": 12,
+  "cases": [
+    {
+      "query": "把这里换成你真实会问的句子",
+      "relevantRelPaths": [
+        "相对 NAS 根路径/到/应被搜到的文件.md"
+      ]
+    },
+    {
+      "query": "第二个问题",
+      "relevantRelPaths": ["某目录/某.pdf"]
+    }
+  ]
+}

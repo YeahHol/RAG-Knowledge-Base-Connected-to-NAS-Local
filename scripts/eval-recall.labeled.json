@@ -1,0 +1,38 @@
+{
+  "k": 12,
+  "_note": "基于当前 data/store.json（约 70 文件 / 1762 块）编写；与线上一致使用 embedText+向量混合。政策表 case 用「文件名主干」问法更稳；口语问法见 eval-recall.natural-hard.json。",
+  "cases": [
+    {
+      "query": "台州开宇冶金 储能项目 可行性研究",
+      "relevantRelPaths": ["01-台州开宇冶金机具有限公司400kW-920KWh储能项目可行性研究报告.pdf"]
+    },
+    {
+      "query": "南京四象 陈总 访谈记录",
+      "relevantRelPaths": ["01南京四象&零探智能_陈总_访谈记录_20220520.docx"]
+    },
+    {
+      "query": "新能源配储能政策梳理_v20220809",
+      "relevantRelPaths": ["新能源配储能政策梳理_v20220809.xlsx"]
+    },
+    {
+      "query": "库博能源_储能系统产品手册2022",
+      "relevantRelPaths": ["库博能源_储能系统产品手册2022(2).pdf"]
+    },
+    {
+      "query": "用户侧储能 市场规模测算",
+      "relevantRelPaths": ["05_用户侧储能市场规模测算_v1.0_20220625.xlsx"]
+    },
+    {
+      "query": "美克生 刘总 访谈或会议",
+      "relevantRelPaths": ["08美克生_刘总_20220609.docx"]
+    },
+    {
+      "query": "分布式光伏 配储 经济性模型",
+      "relevantRelPaths": ["04_分布式光伏配储经济性模型20220527.xlsx"]
+    },
+    {
+      "query": "储能在线 商业计划书",
+      "relevantRelPaths": ["储能在线_商业计划书-20220522.pdf"]
+    }
+  ]
+}

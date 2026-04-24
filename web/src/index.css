@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-lg: 0.625rem;
+}
+
+:root {
+  --background: oklch(0.983 0.003 255);
+  --foreground: oklch(0.24 0.01 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.01 258);
+  --primary: oklch(0.61 0.19 258);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.004 255);
+  --secondary-foreground: oklch(0.33 0.01 258);
+  --muted: oklch(0.965 0.004 255);
+  --muted-foreground: oklch(0.52 0.01 258);
+  --border: oklch(0.89 0.006 255);
+  --ring: oklch(0.74 0.09 258);
+  --soft-shadow: 0 16px 40px -28px rgba(15, 23, 42, 0.35);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image: radial-gradient(circle at top left, oklch(0.985 0.01 255), oklch(0.975 0.004 255) 42%, oklch(0.98 0.002 255) 100%);
+  }
+  button,
+  input,
+  textarea,
+  select {
+    transition: all 180ms ease;
+  }
+}
+
+@layer components {
+  .soft-panel {
+    @apply border-border/80 bg-card/90 rounded-2xl border backdrop-blur;
+    box-shadow: var(--soft-shadow);
+  }
+
+  .markdown-answer {
+    @apply text-foreground leading-7;
+  }
+
+  .markdown-answer p {
+    @apply my-2;
+  }
+
+  .markdown-answer strong {
+    @apply font-semibold;
+  }
+
+  .markdown-answer ul {
+    @apply my-2 list-disc pl-5;
+  }
+
+  .markdown-answer ol {
+    @apply my-2 list-decimal pl-5;
+  }
+
+  .markdown-answer code {
+    @apply bg-muted rounded px-1.5 py-0.5 text-[0.9em];
+  }
+
+  .markdown-answer pre {
+    @apply bg-muted/70 my-2 overflow-x-auto rounded-lg p-3;
+  }
+
+  .markdown-answer pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .markdown-answer a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .markdown-answer a.source-ref {
+    @apply no-underline rounded-sm bg-sky-50 px-1 py-0.5 text-sky-700;
+    position: relative;
+    display: inline-block;
+  }
+
+  .markdown-answer a.source-ref::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -14px;
+    width: 12px;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 85%, transparent);
+    transform: translateY(-50%);
+  }
+
+  .source-note {
+    position: relative;
+  }
+
+  .source-note::before {
+    content: "";
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    width: 12px;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 85%, transparent);
+    transform: translateY(-50%);
+  }
+
+  .source-note-active {
+    outline: 2px solid color-mix(in oklab, var(--color-primary) 35%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 8%, white);
+    transition: all 180ms ease;
+  }
+}
