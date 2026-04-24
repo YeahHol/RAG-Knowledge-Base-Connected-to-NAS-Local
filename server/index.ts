@@ -20,6 +20,7 @@ import {
 } from "./search"
 import { chatCompletion } from "./chat"
 import { runMapReduceChat } from "./map-reduce-rag"
+import { buildWikiPages, writeWikiPages } from "./wiki-builder"
 import { embedText, getEmbeddingConfig } from "./embeddings"
 import {
   appendChatHistory,
@@ -756,6 +757,64 @@ app.post("/api/scan", async (req, res) => {
     })
   } catch (e) {
     res.status(400).json({ error: String(e), progress: getScanProgress() })
+  }
+})
+
+app.post("/api/wiki/build", async (req, res) => {
+  const apiKey = String(process.env.OPENAI_API_KEY ?? "").trim()
+  const baseURL = String(process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").trim()
+  const model = String(process.env.OPENAI_MODEL ?? "gpt-4o-mini").trim()
+  if (!apiKey) {
+    res.status(400).json({ error: "服务端未配置 OPENAI_API_KEY，无法自动生成 Wiki" })
+    return
+  }
+  const topicLimit = Math.max(1, Math.min(20, Number(req.body?.topicLimit ?? process.env.WIKI_BUILD_TOPIC_LIMIT ?? 6) || 6))
+  const chunksPerTopic = Math.max(
+    2,
+    Math.min(30, Number(req.body?.chunksPerTopic ?? process.env.WIKI_BUILD_CHUNKS_PER_TOPIC ?? 12) || 12),
+  )
+  const maxCharsPerTopic = Math.max(
+    3000,
+    Math.min(80_000, Number(req.body?.maxCharsPerTopic ?? process.env.WIKI_BUILD_MAX_CHARS ?? 16_000) || 16_000),
+  )
+
+  const store = await loadStore()
+  if (!store.rootPath) {
+    res.status(400).json({ error: "请先配置并扫描知识库根路径，再生成 Wiki" })
+    return
+  }
+  if (store.chunks.length === 0) {
+    res.status(400).json({ error: "当前索引为空，请先执行扫描" })
+    return
+  }
+  try {
+    const built = await buildWikiPages({
+      store,
+      baseURL,
+      apiKey,
+      model,
+      topicLimit,
+      chunksPerTopic,
+      maxCharsPerTopic,
+    })
+    if (built.generated.length === 0) {
+      res.status(400).json({ error: "未生成任何 Wiki 页面（请检查索引内容是否可用）" })
+      return
+    }
+    await writeWikiPages(store.rootPath, built.generated)
+    await runScan(store.rootPath, "wiki")
+    res.json({
+      ok: true,
+      generatedCount: built.generated.length,
+      pages: built.generated.map((x) => ({
+        title: x.title,
+        relPath: x.relPath,
+        sourceCount: x.sourceCount,
+      })),
+      reindexed: true,
+    })
+  } catch (e) {
+    res.status(502).json({ error: String(e) })
   }
 })
 
