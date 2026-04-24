@@ -52,6 +52,8 @@ const PORT = Number(process.env.PORT) || 8787
 const SEARCH_DEBUG =
   String(process.env.SEARCH_DEBUG ?? "").trim().toLowerCase() === "true" ||
   String(process.env.NODE_ENV ?? "").trim().toLowerCase() !== "production"
+const AUTO_WIKI_ENABLED = String(process.env.AUTO_WIKI_ENABLED ?? "true").trim().toLowerCase() !== "false"
+const AUTO_WIKI_TOP_HITS = Math.max(1, Math.min(12, Number(process.env.AUTO_WIKI_TOP_HITS ?? 6) || 6))
 
 function debugQueryTerms(input: string): string[] {
   const lower = input.toLowerCase()
@@ -84,6 +86,82 @@ function buildSearchDebugPayload(
       }
     }),
   }
+}
+
+function todayAutoWikiRelPath() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `wiki/auto/${y}-${m}-${day}.md`
+}
+
+function normalizeAutoWikiQuestion(input: string) {
+  return input
+    .toLowerCase()
+    .replace(/[^\p{Script=Han}a-z0-9]+/gu, "")
+    .trim()
+}
+
+async function hasAutoWikiQuestion(absPath: string, question: string) {
+  const target = normalizeAutoWikiQuestion(question)
+  if (!target) return false
+  try {
+    const raw = await fs.readFile(absPath, "utf-8")
+    const lines = raw.split(/\r?\n/)
+    for (const line of lines) {
+      const m = line.match(/^- 问题：(.*)$/)
+      if (!m) continue
+      const q = normalizeAutoWikiQuestion(m[1] ?? "")
+      if (!q) continue
+      if (q === target) return true
+      // 兼容“加了几个词”的近似重复问题
+      if (q.length >= 12 && target.length >= 12 && (q.includes(target) || target.includes(q))) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+async function appendAutoWikiEntry(input: {
+  rootPath: string
+  question: string
+  mode: "search" | "chat"
+  answer?: string
+  hits: SearchHit[]
+  fileById: Map<string, { relPath: string }>
+}) {
+  if (!AUTO_WIKI_ENABLED || !input.rootPath) return
+  const relPath = todayAutoWikiRelPath()
+  const absPath = path.join(input.rootPath, relPath.replace(/\//g, path.sep))
+  await fs.mkdir(path.dirname(absPath), { recursive: true })
+  const duplicated = await hasAutoWikiQuestion(absPath, input.question)
+  if (duplicated) return
+  const now = new Date().toISOString()
+  const topHits = input.hits.slice(0, AUTO_WIKI_TOP_HITS)
+  const lines = [
+    "",
+    `## ${input.mode === "chat" ? "问答" : "检索"}记录 · ${now}`,
+    "",
+    `- 问题：${input.question}`,
+  ]
+  if (input.answer?.trim()) {
+    const shortAnswer = input.answer.replace(/\s+/g, " ").trim().slice(0, 1200)
+    lines.push(`- 回答摘要：${shortAnswer}`)
+  }
+  lines.push("", "### 关联片段")
+  if (topHits.length === 0) {
+    lines.push("- （无命中片段）")
+  } else {
+    for (const h of topHits) {
+      const rel = input.fileById.get(h.chunk.fileId)?.relPath ?? ""
+      lines.push(`- ${h.chunk.title} | ${rel} | score=${Math.round(h.score)}`)
+    }
+  }
+  lines.push("")
+  await fs.appendFile(absPath, lines.join("\n"), "utf-8")
+  await reindexSingleFile(input.rootPath, relPath)
 }
 
 type NasSession = {
@@ -1155,6 +1233,15 @@ app.get("/api/search", async (req, res) => {
   const fileRelByChunkId = new Map(store.files.map((f) => [f.id, f.relPath.replace(/\\/g, "/")]))
   const hits = searchChunks(store.chunks, q, 12, queryEmbedding, { fileRelByChunkId })
   const fileById = new Map(store.files.map((f) => [f.id, f]))
+  if (store.rootPath) {
+    void appendAutoWikiEntry({
+      rootPath: store.rootPath,
+      question: q,
+      mode: "search",
+      hits,
+      fileById,
+    }).catch((e) => console.warn("[auto-wiki] search append failed:", String(e)))
+  }
   const debug = buildSearchDebugPayload(q, hits, fileById, !!queryEmbedding)
   res.json({
     query: q,
@@ -1531,6 +1618,16 @@ ${systemWikiLayer}`
       sources,
     })
     const debug = buildSearchDebugPayload(question, hits, fileById, !!queryEmbedding, vectorError)
+    if (store.rootPath) {
+      void appendAutoWikiEntry({
+        rootPath: store.rootPath,
+        question,
+        mode: "chat",
+        answer: answerWithVisuals,
+        hits: dedupPromptHits,
+        fileById,
+      }).catch((e) => console.warn("[auto-wiki] chat append failed:", String(e)))
+    }
     res.json({
       answer: answerWithVisuals,
       sources,
